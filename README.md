@@ -61,3 +61,14 @@ go build
 Assuming that completed with no errors, your compiled Tweego binary should be in the current directory—likely named either `tweego` or `tweego.exe` depending on your OS.
 
 Finally, see [Tweego's documentation](http://www.motoslave.net/tweego/docs/) for information on how to set it up and use it.
+
+# Release Builiding
+
+This project has a manual trigger for releasing a new version in the GitHub Actions.
+
+The process for a new release is like this:
+
+1. Create a new tag for the release
+2. Push the tag to GitHub
+3. Trigger the workflow from the workflow page. Enter the version number as the tag and mark if it's a prerelease
+4. Wait for the release to be generated and the binaries to be uploaded.
