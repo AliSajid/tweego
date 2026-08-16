@@ -1,0 +1,173 @@
+name: Build release binaries
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (for example, v2.0.0)"
+        required: true
+        type: string
+      prerelease:
+        description: "Mark the GitHub release as a pre-release"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows x86_64
+            goos: windows
+            goarch: amd64
+            archive: zip
+
+          - name: Windows ARM64
+            goos: windows
+            goarch: arm64
+            archive: zip
+
+          - name: Linux x86_64
+            goos: linux
+            goarch: amd64
+            archive: tar.gz
+
+          - name: Linux ARM64
+            goos: linux
+            goarch: arm64
+            archive: tar.gz
+
+          - name: macOS x86_64
+            goos: darwin
+            goarch: amd64
+            archive: tar.gz
+
+          - name: macOS ARM64
+            goos: darwin
+            goarch: arm64
+            archive: tar.gz
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build Tweego
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          set -eux
+
+          version="${{ inputs.version }}"
+          directory="tweego-${version}-${GOOS}-${GOARCH}"
+
+          mkdir -p "dist/${directory}"
+
+          binary="dist/${directory}/tweego"
+
+          if [ "${GOOS}" = "windows" ]; then
+            binary="${binary}.exe"
+          fi
+
+          go build \
+            -trimpath \
+            -ldflags="-s -w" \
+            -o "${binary}" \
+            .
+
+          cp LICENSE "dist/${directory}/"
+
+      - name: Package artifact
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -eux
+
+          cd dist
+
+          directory="tweego-${VERSION}-${{ matrix.goos }}-${{ matrix.goarch }}"
+
+          if [ "${{ matrix.archive }}" = "zip" ]; then
+            zip -r "${directory}.zip" "${directory}"
+          else
+            tar -czf "${directory}.tar.gz" "${directory}"
+          fi
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tweego-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: |
+            dist/tweego-${{ inputs.version }}-${{ matrix.goos }}-${{ matrix.goarch }}.*
+
+  release:
+    name: Create or update GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v5
+        with:
+          path: dist
+
+      - name: Collect release assets
+        run: |
+          set -eux
+
+          mkdir -p release
+
+          find dist \
+            -type f \
+            \( -name '*.zip' -o -name '*.tar.gz' \) \
+            -exec cp {} release/ \;
+
+          ls -lah release
+
+      - name: Create or update GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -eux
+
+          if gh release view "${VERSION}" >/dev/null 2>&1; then
+            echo "Release ${VERSION} already exists."
+            echo "Replacing release assets..."
+
+            gh release upload \
+              "${VERSION}" \
+              release/* \
+              --clobber
+          else
+            echo "Release ${VERSION} does not exist."
+            echo "Creating release..."
+
+            prerelease_args=()
+
+            if [ "${{ inputs.prerelease }}" = "true" ]; then
+              prerelease_args+=(--prerelease)
+            fi
+
+            gh release create "${VERSION}" \
+              --verify-tag \
+              --title "Tweego ${VERSION}" \
+              --generate-notes \
+              "${prerelease_args[@]}" \
+              release/*
+          fi
