@@ -97,6 +97,7 @@ jobs:
           cp LICENSE "dist/${directory}/"
 
       - name: Package artifact
+        shell: bash
         env:
           VERSION: ${{ inputs.version }}
         run: |
@@ -131,6 +132,7 @@ jobs:
           path: dist
 
       - name: Collect release assets
+        shell: bash
         run: |
           set -eux
 
@@ -144,6 +146,7 @@ jobs:
           ls -lah release
 
       - name: Create or update GitHub release
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
