@@ -68,6 +68,7 @@ jobs:
           cache: true
 
       - name: Build Tweego
+        shell: bash
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
