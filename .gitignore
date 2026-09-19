@@ -15,8 +15,8 @@
 # Documentation
 *.html
 
-# Dependencies
-go.sum
+# # Dependencies
+# go.sum
 
 # Builds & distribution
 dist/
