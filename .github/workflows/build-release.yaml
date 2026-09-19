@@ -19,7 +19,7 @@ permissions:
 jobs:
   build:
     name: ${{ matrix.name }}
-    runs-on: ${{ matrix.goos }}-latest
+    runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false

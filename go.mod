@@ -1,6 +1,6 @@
 module github.com/tmedwards/tweego
 
-go 1.13
+go 1.23
 
 require (
 	github.com/Masterminds/semver/v3 v3.0.3
