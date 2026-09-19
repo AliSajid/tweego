@@ -150,6 +150,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
+          GH_REPO: ${{ github.repository }}
         run: |
           set -eux
 
