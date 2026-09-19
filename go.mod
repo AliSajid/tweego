@@ -1,4 +1,4 @@
-module github.com/tmedwards/tweego
+module github.com/AliSajid/tweego
 
 go 1.23
 
